@@ -1,5 +1,6 @@
 'use strict';
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDdTyyWQYWMA3VJCNFJiNtdAYC7Rc9gI9k",
   authDomain: "portal-aiche.firebaseapp.com",
@@ -10,6 +11,7 @@ const firebaseConfig = {
   appId: "1:153207665579:web:b76bdf9ed2c6ff500918ee"
 };
 
+// Inicializa Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
@@ -22,43 +24,39 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnLogout = document.getElementById('btn-logout');
     const loginStatus = document.getElementById('login-status');
 
-    // Función para actualizar la interfaz según el usuario
+    // UI según sesión
     function actualizarUI(usuario) {
         if (usuario) {
-            loginStatus.textContent = `Ingresado como ${usuario.rol}: ${usuario.nombre.split(' ')[0]} ${usuario.nombre.split(' ')[1]}`;
+            const partes = usuario.nombre.split(" ");
+            const nombre = partes.slice(0, 2).join(" ");
+            loginStatus.textContent = `Ingresado como ${usuario.rol}: ${nombre}`;
             loginStatus.classList.remove('hidden');
-            btnOpenPopup.classList.add('hidden');
-            btnLogout.classList.remove('hidden');
+            btnOpenPopup?.classList.add('hidden');
+            btnLogout?.classList.remove('hidden');
         } else {
             loginStatus.textContent = '';
             loginStatus.classList.add('hidden');
-            btnOpenPopup.classList.remove('hidden');
-            btnLogout.classList.add('hidden');
+            btnOpenPopup?.classList.remove('hidden');
+            btnLogout?.classList.add('hidden');
         }
     }
 
-    // Validar si hay sesión guardada
     const usuarioGuardado = localStorage.getItem('usuario');
-    if (usuarioGuardado) {
-        const data = JSON.parse(usuarioGuardado);
-        actualizarUI(data);
-    }
+    if (usuarioGuardado) actualizarUI(JSON.parse(usuarioGuardado));
 
-    // Mostrar popup login
-    if (btnOpenPopup) {
-        btnOpenPopup.addEventListener('click', () => {
-            document.getElementById('popup-login').classList.remove('hidden');
-        });
-    }
+    // Abrir popup login
+    btnOpenPopup?.addEventListener('click', () => {
+        document.getElementById('popup-login')?.classList.remove('hidden');
+    });
 
     // Cerrar sesión
-    btnLogout.addEventListener('click', () => {
+    btnLogout?.addEventListener('click', () => {
         localStorage.removeItem('usuario');
         actualizarUI(null);
     });
 
-    // Validar matrícula en Firebase
-    btnLogin.addEventListener('click', async () => {
+    // Login por matrícula desde Firebase
+    btnLogin?.addEventListener('click', async () => {
         const matricula = document.getElementById('input-matricula').value.trim();
         const errorText = document.getElementById('login-error');
 
@@ -69,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         try {
-            const snapshot = await get(ref(database, `Aiche/miembros/${matricula}`));
+            const snapshot = await db.ref(`Aiche/miembros/${matricula}`).get();
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 localStorage.setItem('usuario', JSON.stringify(data));
@@ -86,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Enviar formulario de contacto ficticio
+    // Formulario de contacto (prueba)
     if (form) {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
