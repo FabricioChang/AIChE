@@ -1,4 +1,5 @@
 {
+  "cleanUrls": true,
   "rewrites": [
     { "source": "/eventos", "destination": "/eventos.html" },
     { "source": "/evento", "destination": "/evento.html" }
