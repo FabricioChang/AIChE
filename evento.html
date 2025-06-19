@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalle del Evento</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&display=swap">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-[#0d141c] font-[Public Sans] min-h-screen">
+  <header class="flex justify-between items-center border-b px-6 py-4">
+    <h1 class="text-xl font-bold">Horario del Evento</h1>
+    <a href="eventos.html" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">Volver</a>
+  </header>
+
+  <main class="p-6">
+    <div id="evento-info" class="mb-6"></div>
+    <div id="tabla-horario" class="overflow-auto border rounded"></div>
+  </main>
+
+  <!-- Popup Reserva -->
+  <div id="popup-reserva" class="hidden fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div class="bg-white p-6 rounded shadow max-w-sm w-full relative">
+      <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-800" onclick="document.getElementById('popup-reserva').classList.add('hidden')">&times;</button>
+      <h2 class="text-lg font-bold mb-4">Confirmar Reserva</h2>
+      <p id="reserva-detalle" class="mb-4"></p>
+      <div class="flex justify-end gap-2">
+        <button id="btn-cancelar-reserva" class="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
+        <button id="btn-confirmar-reserva" class="px-4 py-2 bg-green-600 text-white rounded">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventoId = urlParams.get("evento");
+    let eventoData = null;
+    let seleccionReserva = null;
+
+    async function obtenerEvento() {
+      const res = await fetch(`https://portal-aiche-default-rtdb.firebaseio.com/Aiche/eventos/${eventoId}.json`);
+      const data = await res.json();
+      return data;
+    }
+
+    function convertirHoraTextoAHoras(texto) {
+      const [h, m] = texto.trim().split(":".replace(/\s/g, "")).map(Number);
+      return h + m / 60;
+    }
+
+    function formatearHora(decimal) {
+      const h = Math.floor(decimal);
+      const m = Math.round((decimal - h) * 60);
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    }
+
+    function construirTabla(evento) {
+      const container = document.getElementById("tabla-horario");
+      const roles = evento.roles;
+      const [inicioStr, finStr] = evento.horario.split("-").map(s => s.trim());
+      const inicio = convertirHoraTextoAHoras(inicioStr);
+      const fin = convertirHoraTextoAHoras(finStr);
+      const duracionTurno = convertirHoraTextoAHoras(evento.duracion_turno);
+      const filas = Math.ceil((fin - inicio) / duracionTurno);
+      const tabla = document.createElement("table");
+      tabla.className = "min-w-full table-fixed border-collapse border text-sm";
+
+      const thead = document.createElement("thead");
+      const trHead = document.createElement("tr");
+      trHead.innerHTML = `<th class='border px-4 py-2 bg-gray-100'>Turnos</th>` +
+        roles.map(r => `<th class='border px-4 py-2 bg-gray-100'>${r}</th>`).join("");
+      thead.appendChild(trHead);
+
+      const tbody = document.createElement("tbody");
+      for (let i = 0; i < filas; i++) {
+        const tInicio = inicio + i * duracionTurno;
+        const tFin = tInicio + duracionTurno;
+        const tLabel = `${formatearHora(tInicio)} - ${formatearHora(tFin)}`;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td class='border px-4 py-2 font-medium bg-gray-50'>${formatearHora(tInicio)}</td>` +
+          roles.map(rol => {
+            const key = `${rol}_${formatearHora(tInicio)}-${formatearHora(tFin)}`;
+            const matricula = evento.turnos_reservados?.[key];
+            if (matricula) {
+              return `<td class='border px-4 py-2 text-green-600 font-semibold text-center'>Reservado<br><span class='text-xs text-black'>${matricula}</span></td>`;
+            } else {
+              return `<td class='border px-4 py-2 text-center text-red-600 cursor-pointer hover:underline' data-rol='${rol}' data-inicio='${formatearHora(tInicio)}' data-fin='${formatearHora(tFin)}'>Faltante!</td>`;
+            }
+          }).join("");
+        tbody.appendChild(tr);
+      }
+
+      tabla.appendChild(thead);
+      tabla.appendChild(tbody);
+      container.appendChild(tabla);
+
+      tbody.querySelectorAll("td[data-rol]").forEach(td => {
+        td.addEventListener("click", () => {
+          seleccionReserva = {
+            rol: td.dataset.rol,
+            inicio: td.dataset.inicio,
+            fin: td.dataset.fin
+          };
+          document.getElementById("reserva-detalle").textContent = `¿Quieres reservar el turno de ${td.dataset.inicio} a ${td.dataset.fin} en el rol de ${td.dataset.rol}?`;
+          document.getElementById("popup-reserva").classList.remove("hidden");
+        });
+      });
+    }
+
+    async function init() {
+      const evento = await obtenerEvento();
+      if (!evento) return;
+      eventoData = evento;
+      document.getElementById("evento-info").innerHTML = `
+        <h2 class="text-lg font-bold mb-2">${evento.nombre}</h2>
+        <p><strong>Fecha:</strong> ${evento.fecha}</p>
+        <p><strong>Lugar:</strong> ${evento.lugar}</p>
+        <p><strong>Horario:</strong> ${evento.horario}</p>
+        <p><strong>Duración de turno:</strong> ${evento.duracion_turno}</p>
+        <p><strong>Roles:</strong> ${evento.roles.join(", ")}</p>
+      `;
+      construirTabla(evento);
+    }
+
+    document.getElementById("btn-cancelar-reserva").addEventListener("click", () => {
+      document.getElementById("popup-reserva").classList.add("hidden");
+      seleccionReserva = null;
+    });
+
+    document.getElementById("btn-confirmar-reserva").addEventListener("click", async () => {
+      const usuarioRaw = localStorage.getItem("usuario");
+      if (!usuarioRaw || !seleccionReserva) return;
+      const usuario = JSON.parse(usuarioRaw);
+      const clave = `${seleccionReserva.rol}_${seleccionReserva.inicio}-${seleccionReserva.fin}`;
+      await fetch(`https://portal-aiche-default-rtdb.firebaseio.com/Aiche/eventos/${eventoId}/turnos_reservados/${clave}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(`${usuario.nombre} (${usuario.matricula || "sin matrícula"})`)
+      });
+      window.location.reload();
+    });
+
+    window.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>

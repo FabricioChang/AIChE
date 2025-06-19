@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eventos - AIChE</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin />
+  <link rel="stylesheet" as="style" onload="this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?display=swap&family=Noto+Sans:wght@400;500;700;900&family=Public+Sans:wght@400;500;700;900" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+</head>
+<body class="bg-slate-50 text-[#0d141c]" style="font-family: 'Public Sans', 'Noto Sans', sans-serif;">
+  <!-- Navbar personalizado -->
+  <header class="flex items-center justify-between border-b border-[#e7edf4] px-10 py-3">
+    <div class="flex items-center gap-4">
+      <svg class="size-4" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M24 4H42V17.3333V30.6667H24V44H6V30.6667V17.3333H24V4Z" fill="currentColor"></path>
+      </svg>
+      <a href="index.html" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded text-sm">Inicio</a>
+    </div>
+    <div id="login-section" class="flex items-center gap-4">
+      <span id="login-status" class="hidden text-sm font-medium"></span>
+      <button id="btn-open-login" class="bg-blue-500 text-white px-4 py-2 rounded hidden">Ingresar</button>
+      <button id="btn-logout" class="bg-red-500 text-white px-4 py-2 rounded hidden">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <!-- Contenido de eventos -->
+  <main class="max-w-4xl mx-auto p-6 space-y-6">
+    <h1 class="text-2xl font-bold">Gestor de Eventos</h1>
+
+    <!-- Opciones exclusivas para roles altos -->
+    <div id="acciones-evento" class="space-x-4 hidden">
+      <button id="btn-open-create-event" class="bg-blue-600 text-white px-4 py-2 rounded">Crear Evento</button>
+    </div>
+
+    <div class="mt-10 text-gray-500">
+      <p>En esta sección podrás crear y gestionar eventos del Club AIChE si tienes los permisos adecuados.</p>
+    </div>
+
+    <!-- Lista de eventos existentes -->
+    <div id="eventos-lista" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6"></div>
+  </main>
+
+  <!-- Popup Login -->
+  <div id="popup-login" class="hidden fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div class="bg-white p-6 rounded shadow relative">
+      <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-800" onclick="document.getElementById('popup-login').classList.add('hidden')">&times;</button>
+      <h2 class="mb-4 text-xl font-bold">Ingresa tu matrícula</h2>
+      <input type="text" id="input-matricula" class="border p-2 w-full mb-4" placeholder="Ej. 202209326" />
+      <button id="btn-login" class="bg-blue-500 text-white px-4 py-2 rounded">Ingresar</button>
+      <p id="login-error" class="text-red-500 mt-2 hidden">Matrícula no encontrada</p>
+    </div>
+  </div>
+
+  <!-- Popup Crear Evento -->
+  <div id="popup-create-event" class="hidden fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div class="bg-white p-6 rounded shadow max-w-xl w-full relative">
+      <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-800" onclick="document.getElementById('popup-create-event').classList.add('hidden')">&times;</button>
+      <h2 class="text-xl font-bold mb-4">Crear Evento</h2>
+      <form id="form-crear-evento" class="space-y-4">
+        <input type="text" id="evento-nombre" required class="w-full border rounded p-2" placeholder="Nombre del evento" />
+        <input type="text" id="evento-fecha" required class="w-full border rounded p-2" placeholder="Fecha (dd/mm/aaaa)" />
+        <input type="text" id="evento-horario" required class="w-full border rounded p-2" placeholder="Horario (hh:mm - hh:mm)" />
+        <input type="text" id="evento-lugar" required class="w-full border rounded p-2" placeholder="Lugar del evento" />
+        <input type="text" id="evento-duracion-turno" required class="w-full border rounded p-2" placeholder="Duración de cada turno (h:mm)" />
+        <div id="roles-container" class="space-y-2">
+          <input type="text" name="rol" class="w-full border rounded p-2" placeholder="Rol (ej. Protocolo)" required />
+        </div>
+        <button type="button" id="btn-agregar-rol" class="bg-gray-300 hover:bg-gray-400 px-3 py-1 rounded">+ Agregar rol</button>
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Guardar Evento</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    const status = document.getElementById('login-status');
+    const logout = document.getElementById('btn-logout');
+    const acciones = document.getElementById('acciones-evento');
+    const btnLoginOpen = document.getElementById('btn-open-login');
+
+    function actualizarUI(usuario) {
+      if (usuario) {
+        const [nombre, apellido] = usuario.nombre.split(' ');
+        status.textContent = `Ingresado como ${usuario.rol}: ${nombre} ${apellido}`;
+        status.classList.remove('hidden');
+        logout.classList.remove('hidden');
+        btnLoginOpen.classList.add('hidden');
+        const rolesPermitidos = ['Presidenta', 'Vicepresidente', 'Coordinador de Eventos'];
+        if (rolesPermitidos.includes(usuario.rol)) {
+          acciones.classList.remove('hidden');
+        }
+      } else {
+        status.classList.add('hidden');
+        logout.classList.add('hidden');
+        btnLoginOpen.classList.remove('hidden');
+        acciones.classList.add('hidden');
+      }
+    }
+
+    const usuarioRaw = localStorage.getItem('usuario');
+    if (usuarioRaw) actualizarUI(JSON.parse(usuarioRaw));
+
+    logout.addEventListener('click', () => {
+      localStorage.removeItem('usuario');
+      window.location.href = 'index.html';
+    });
+
+    btnLoginOpen.addEventListener('click', () => {
+      document.getElementById('popup-login').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const matricula = document.getElementById('input-matricula').value.trim();
+      const errorText = document.getElementById('login-error');
+      if (!matricula) {
+        errorText.textContent = 'Por favor ingresa una matrícula.';
+        errorText.classList.remove('hidden');
+        return;
+      }
+      try {
+        const res = await fetch(`https://portal-aiche-default-rtdb.firebaseio.com/Aiche/miembros/${matricula}.json`);
+        const data = await res.json();
+        if (data && data.nombre && data.rol) {
+          localStorage.setItem('usuario', JSON.stringify(data));
+          document.getElementById('popup-login').classList.add('hidden');
+          actualizarUI(data);
+        } else {
+          errorText.textContent = 'Matrícula no registrada.';
+          errorText.classList.remove('hidden');
+        }
+      } catch (e) {
+        errorText.textContent = 'Error al conectar con la base de datos.';
+        errorText.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('btn-open-create-event')?.addEventListener('click', () => {
+      document.getElementById('popup-create-event').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-agregar-rol').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.name = 'rol';
+      input.required = true;
+      input.className = 'w-full border rounded p-2';
+      input.placeholder = 'Rol (ej. Gestión de micrófonos)';
+      document.getElementById('roles-container').appendChild(input);
+    });
+
+    document.getElementById('form-crear-evento').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById('evento-nombre').value.trim();
+      const fecha = document.getElementById('evento-fecha').value.trim();
+      const horario = document.getElementById('evento-horario').value.trim();
+      const lugar = document.getElementById('evento-lugar').value.trim();
+      const duracion = document.getElementById('evento-duracion-turno').value.trim();
+      const roles = [...document.querySelectorAll('input[name="rol"]')].map(input => input.value.trim()).filter(Boolean);
+      if (!nombre || !fecha || !horario || !lugar || !duracion || roles.length === 0) return alert("Todos los campos son obligatorios");
+      const evento = { nombre, fecha, horario, lugar, duracionTurno: duracion, roles };
+      await fetch(`https://portal-aiche-default-rtdb.firebaseio.com/Aiche/eventos/${nombre}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(evento)
+      });
+      alert("Evento guardado exitosamente");
+      document.getElementById('popup-create-event').classList.add('hidden');
+      e.target.reset();
+      document.getElementById('roles-container').innerHTML = '<input type="text" name="rol" class="w-full border rounded p-2" placeholder="Rol (ej. Protocolo)" required />';
+      cargarEventos();
+    });
+
+    async function cargarEventos() {
+      const contenedor = document.getElementById("eventos-lista");
+      contenedor.innerHTML = "<p class='text-sm text-gray-500'>Cargando eventos...</p>";
+      const res = await fetch("https://portal-aiche-default-rtdb.firebaseio.com/Aiche/eventos.json");
+      const data = await res.json();
+      contenedor.innerHTML = "";
+      if (!data) {
+        contenedor.innerHTML = "<p class='text-sm text-gray-500'>No hay eventos registrados.</p>";
+        return;
+      }
+      Object.entries(data).forEach(([id, evento]) => {
+        const tarjeta = document.createElement("div");
+        tarjeta.className = "bg-white shadow rounded p-4 border hover:shadow-md cursor-pointer";
+        tarjeta.innerHTML = `
+          <h3 class="text-lg font-bold">${evento.nombre}</h3>
+          <p class="text-sm text-gray-700">Fecha: ${evento.fecha}</p>
+          <p class="text-sm text-gray-700">Horario: ${evento.horario}</p>
+          <p class="text-sm text-gray-700">Lugar: ${evento.lugar}</p>
+          <p class="text-sm text-gray-700">Duración por turno: ${evento.duracion_turno}</p>
+          <p class="text-sm text-gray-700">Roles: ${evento.roles.join(", ")}</p>
+        `;
+        tarjeta.onclick = () => {
+          window.location.href = `evento.html?evento=${encodeURIComponent(id)}`;
+        };
+        contenedor.appendChild(tarjeta);
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", cargarEventos);
+  </script>
+</body>
+</html>
