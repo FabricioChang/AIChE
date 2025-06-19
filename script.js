@@ -1,8 +1,5 @@
 'use strict';
 
-import { database } from './src/firebase.js';
-import { ref, get } from "firebase/database";
-
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('form-contacto');
     const datosFormulario = document.getElementById('datos-formulario');
