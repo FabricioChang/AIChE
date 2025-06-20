@@ -158,7 +158,7 @@
       const duracion = document.getElementById('evento-duracion-turno').value.trim();
       const roles = [...document.querySelectorAll('input[name="rol"]')].map(input => input.value.trim()).filter(Boolean);
       if (!nombre || !fecha || !horario || !lugar || !duracion || roles.length === 0) return alert("Todos los campos son obligatorios");
-      const evento = { nombre, fecha, horario, lugar, duracionTurno: duracion, roles };
+      const evento = { nombre, fecha, horario, lugar, duracion_turno: duracion, roles };
       await fetch(`https://portal-aiche-default-rtdb.firebaseio.com/Aiche/eventos/${nombre}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
